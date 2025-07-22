@@ -49,6 +49,8 @@
     <!-- Bootstrap -->
     <link href="themes/SuiteP/css/normalize.css" rel="stylesheet" type="text/css"/>
     <link href='themes/SuiteP/css/fonts.css' rel='stylesheet' type='text/css'>
+    <!-- Phase 2 Modernization: CSS Custom Properties -->
+    <link href="themes/SuiteP/css/modern-variables.css" rel="stylesheet" type="text/css"/>
     <link href="themes/SuiteP/css/grid.css" rel="stylesheet" type="text/css"/>
     <link href="themes/SuiteP/css/footable.core.css" rel="stylesheet" type="text/css"/>
     <title>{if $BROWSER_TITLE}{$BROWSER_TITLE}{else}{$APP.LBL_BROWSER_TITLE}{/if}</title>

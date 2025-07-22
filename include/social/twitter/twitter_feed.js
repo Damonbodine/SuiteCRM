@@ -38,10 +38,41 @@
  */
 
 
+// Function to get safe theme image path with fallback
+function getThemeImagePath(imageName) {
+    // Try to detect current theme from page, fallback to SuiteP
+    var currentTheme = 'SuiteP'; // Default fallback
+    
+    // Try to detect theme from existing CSS links
+    $('link[rel="stylesheet"]').each(function() {
+        var href = $(this).attr('href');
+        if (href && href.indexOf('themes/') !== -1) {
+            var themeMatch = href.match(/themes\/([^\/]+)\//);
+            if (themeMatch) {
+                currentTheme = themeMatch[1];
+                return false; // Break loop
+            }
+        }
+    });
+    
+    return 'themes/' + currentTheme + '/images/' + imageName;
+}
+
 $(function() {
     username = $("#twitter_user_c").text();
     if(username.length > 0){
-        $("#subpanel_title_activities").before('<table cellspacing="0" cellpadding="0" border="0" width="100%" class="formHeader h3Row"><tbody><tr><td style="width:100px;"><h3 style="width:100px;"><span><a name="socialfeeds"></a><span style="display: none" id="show_socialfeeds"><a id="show_socialfeeds" class="utilsLink" href="#"><img border="0" align="absmiddle" alt="Show" src="themes/SuiteP/images/advanced_search.gif"></a></span><span style="display: inline" id="hide_socialfeeds"><a  class="utilsLink" href="#" id="socialfeeds_show"><img border="0" align="absmiddle" alt="Hide" src="themes/SuiteP/images/basic_search.gif"></a></span>&nbsp;Twitter</span></h3></td><td width="100%"><img width="1" height="1" alt="" src="themes/SuiteP/images/blank.gif"></td></tr></tbody></table><div id="SocialDiv" class="doNotPrint" style="width:100%"><table class="list view"><tr></tr><td width="100%"><span id="facebook_feed"></span><span id="feed"></span></td></td><tr></tr></table></div>');
+        $("#subpanel_title_activities").before(
+            '<table cellspacing="0" cellpadding="0" border="0" width="100%" class="formHeader h3Row">' +
+            '<tbody><tr><td style="width:100px;"><h3 style="width:100px;"><span><a name="socialfeeds"></a>' +
+            '<span style="display: none" id="show_socialfeeds"><a id="show_socialfeeds" class="utilsLink" href="#">' +
+            '<img border="0" align="absmiddle" alt="Show" src="' + getThemeImagePath('arrow_down.png') + '"></a></span>' +
+            '<span style="display: inline" id="hide_socialfeeds"><a class="utilsLink" href="#" id="socialfeeds_show">' +
+            '<img border="0" align="absmiddle" alt="Hide" src="' + getThemeImagePath('arrow_up.png') + '"></a></span>' +
+            '&nbsp;Twitter</span></h3></td><td width="100%">' +
+            '<img width="1" height="1" alt="" src="' + getThemeImagePath('arrow.png') + '"></td></tr></tbody></table>' +
+            '<div id="SocialDiv" class="doNotPrint" style="width:100%">' +
+            '<table class="list view"><tr></tr><td width="100%"><span id="facebook_feed"></span><span id="feed"></span></td></td><tr></tr></table></div>'
+        );
 
             $("#show_socialfeeds").click(function(  ) {
             $("#SocialDiv").show();

@@ -78,6 +78,7 @@ $installer_defaults = [
     'setup_site_guid' => '',
     'setup_site_admin_password' => '',
     'setup_site_admin_password_retype' => '',
+    // Default theme for new installations - can be changed in Admin panel after install
     'site_default_theme' => 'SuiteP',
     'default_theme' => 'SuiteP',
     'disable_persistent_connections' => false,

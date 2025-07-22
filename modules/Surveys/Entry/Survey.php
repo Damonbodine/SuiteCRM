@@ -1,6 +1,20 @@
 <?php
 use SuiteCRM\Utility\SuiteValidator;
 
+// Function to get safe CSS theme path with fallback
+function getSurveyThemeCSS() {
+    global $sugar_config;
+    $currentTheme = $sugar_config['default_theme'] ?? 'SuiteP';
+    
+    // Check if bootstrap.min.css exists in current theme
+    if (file_exists("themes/$currentTheme/css/bootstrap.min.css")) {
+        return $currentTheme;
+    }
+    
+    // Fallback to SuiteP if current theme doesn't have Bootstrap CSS
+    return 'SuiteP';
+}
+
 //Grab the survey
 if (empty($_REQUEST['id'])) {
     header('HTTP/1.0 404 Not Found');
@@ -88,7 +102,7 @@ EOF;
 
         <title><?= $survey->name ?></title>
 
-        <link href="themes/SuiteP/css/bootstrap.min.css" rel="stylesheet">
+        <link href="themes/<?= getSurveyThemeCSS() ?>/css/bootstrap.min.css" rel="stylesheet">
         <link href="modules/Surveys/javascript/rating/rating.min.css" rel="stylesheet">
         <link href="modules/Surveys/javascript/datetimepicker/jquery-ui-timepicker-addon.css" rel="stylesheet">
         <link href="include/javascript/jquery/themes/base/jquery.ui.all.css" rel="stylesheet">
@@ -377,7 +391,7 @@ function displayClosedPage($survey)
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>$survey->name</title>
-        <link href="themes/SuiteP/css/bootstrap.min.css" rel="stylesheet">
+        <link href="themes/<?= getSurveyThemeCSS() ?>/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
 EOF;

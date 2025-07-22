@@ -37,10 +37,41 @@
  * display the words "Powered by SugarCRM" and "Supercharged by SuiteCRM".
  */
 
+// Function to get safe theme image path with fallback
+function getThemeImagePath(imageName) {
+    // Try to detect current theme from page, fallback to SuiteP
+    var currentTheme = 'SuiteP'; // Default fallback
+    
+    // Try to detect theme from existing CSS links
+    $('link[rel="stylesheet"]').each(function() {
+        var href = $(this).attr('href');
+        if (href && href.indexOf('themes/') !== -1) {
+            var themeMatch = href.match(/themes\/([^\/]+)\//);
+            if (themeMatch) {
+                currentTheme = themeMatch[1];
+                return false; // Break loop
+            }
+        }
+    });
+    
+    return 'themes/' + currentTheme + '/images/' + imageName;
+}
+
 $(function() {
     username = $("#facebook_user_c").text();
     if(username.length > 0){
-        $("#subpanel_title_activities").before('<table cellspacing="0" cellpadding="0" border="0" width="100%" class="formHeader h3Row"><tbody><tr><td style="width:100px;"><h3 style="width:100px;"><span><a name="facebookfeeds"></a><span style="display: none" id="show_facebookfeeds"><a id="show_facebookfeeds" class="utilsLink" href="#"><img border="0" align="absmiddle" alt="Show" src="themes/SuiteP/images/advanced_search.gif"></a></span><span style="display: inline" id="hide_facebookfeeds"><a  class="utilsLink" href="#" id="facebookfeeds_show"><img border="0" align="absmiddle" alt="Hide" src="themes/SuiteP/images/basic_search.gif"></a></span>&nbsp;Facebook</span></h3></td><td width="100%"><img width="1" height="1" alt="" src="themes/SuiteP/images/blank.gif"></td></tr></tbody></table><div id="FacebookDiv" class="doNotPrint" style="width:100%"><table class="list view"><tr></tr><td width="100%"><span id="facebook_feed"></span></td></td><tr></tr></table></div>');
+        $("#subpanel_title_activities").before(
+            '<table cellspacing="0" cellpadding="0" border="0" width="100%" class="formHeader h3Row">' +
+            '<tbody><tr><td style="width:100px;"><h3 style="width:100px;"><span><a name="facebookfeeds"></a>' +
+            '<span style="display: none" id="show_facebookfeeds"><a id="show_facebookfeeds" class="utilsLink" href="#">' +
+            '<img border="0" align="absmiddle" alt="Show" src="' + getThemeImagePath('arrow_down.png') + '"></a></span>' +
+            '<span style="display: inline" id="hide_facebookfeeds"><a class="utilsLink" href="#" id="facebookfeeds_show">' +
+            '<img border="0" align="absmiddle" alt="Hide" src="' + getThemeImagePath('arrow_up.png') + '"></a></span>' +
+            '&nbsp;Facebook</span></h3></td><td width="100%">' +
+            '<img width="1" height="1" alt="" src="' + getThemeImagePath('arrow.png') + '"></td></tr></tbody></table>' +
+            '<div id="FacebookDiv" class="doNotPrint" style="width:100%">' +
+            '<table class="list view"><tr></tr><td width="100%"><span id="facebook_feed"></span></td></td><tr></tr></table></div>'
+        );
 
             $("#show_facebookfeeds").click(function(  ) {
             $("#FacebookDiv").show();

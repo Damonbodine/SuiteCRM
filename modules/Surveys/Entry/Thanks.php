@@ -3,6 +3,20 @@
 $surveyName = !empty($_REQUEST['name']) ? $_REQUEST['name'] : 'Survey';
 
 $surveyThanks = translate('LBL_SURVEY_THANKS', 'Surveys');
+
+// Function to get safe CSS theme path with fallback
+function getSurveyThemeCSS() {
+    global $sugar_config;
+    $currentTheme = $sugar_config['default_theme'] ?? 'SuiteP';
+    
+    // Check if bootstrap.min.css exists in current theme
+    if (file_exists("themes/$currentTheme/css/bootstrap.min.css")) {
+        return $currentTheme;
+    }
+    
+    // Fallback to SuiteP if current theme doesn't have Bootstrap CSS
+    return 'SuiteP';
+}
 ?>
 
 <!DOCTYPE html>
@@ -14,7 +28,7 @@ $surveyThanks = translate('LBL_SURVEY_THANKS', 'Surveys');
 
     <title><?= $surveyName; ?></title>
 
-    <link href="themes/SuiteP/css/bootstrap.min.css" rel="stylesheet">
+    <link href="themes/<?= getSurveyThemeCSS() ?>/css/bootstrap.min.css" rel="stylesheet">
     <link href="custom/include/javascript/rating/rating.min.css" rel="stylesheet">
     <link href="custom/include/javascript/datetimepicker/jquery-ui-timepicker-addon.css" rel="stylesheet">
     <link href="include/javascript/jquery/themes/base/jquery.ui.all.css" rel="stylesheet">

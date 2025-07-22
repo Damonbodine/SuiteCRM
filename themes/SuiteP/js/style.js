@@ -170,7 +170,7 @@ function updateSubmenuPosition(menuHandle, parentMenu) {
     menuHandle.style.marginLeft = left + 'px';
   }
 }
-YAHOO.util.Event.onDOMReady(function () {
+$(document).ready(function () {
   if (document.getElementById('subModuleList')) {
     var parentMenu = false;
     var moduleListDom = document.getElementById('moduleList');
@@ -215,7 +215,7 @@ SUGAR.append(SUGAR.themes, {
       $(node).sugarActionMenu();
     });
   }, loadModuleList: function () {
-    var nodes = YAHOO.util.Selector.query('#moduleList>div'), currMenuBar;
+    var nodes = $('#moduleList>div').get(), currMenuBar;
     this.allMenuBars = {};
     for (var i = 0; i < nodes.length; i++) {
       currMenuBar = SUGAR.themes.currMenuBar = new YAHOO.widget.MenuBar(nodes[i].id, {
@@ -234,7 +234,9 @@ SUGAR.append(SUGAR.themes, {
   }, setCurrentTab: function () {
   }
 });
-YAHOO.util.Event.onDOMReady(SUGAR.themes.loadModuleList, SUGAR.themes, true);
+$(document).ready(function() {
+  SUGAR.themes.loadModuleList.call(SUGAR.themes);
+});
 
 
 // Custom jQuery for theme
