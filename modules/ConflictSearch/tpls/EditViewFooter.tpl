@@ -1,0 +1,1 @@
+{* ConflictSearch EditView Footer Template *}
