@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test AI Billable Hours Integration</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h2>AI Billable Hours Integration Test</h2>
+    
+    <div id="test-results">
+        <p>Testing AI endpoint...</p>
+    </div>
+    
+    <script>
+    // Test the AI endpoint directly
+    function testAIEndpoint() {
+        console.log('Testing AI endpoint...');
+        
+        // Test description suggestions
+        $.ajax({
+            url: 'index.php',
+            method: 'POST',
+            data: {
+                entryPoint: 'aiBillableHours',
+                ai_action: 'get_descriptions',
+                activity_type: 'court_appearance',
+                to_pdf: true
+            },
+            success: function(response) {
+                console.log('AI Response:', response);
+                
+                if (response.success) {
+                    $('#test-results').html(
+                        '<h3>✅ AI Working!</h3>' +
+                        '<p>Found ' + response.data.count + ' description suggestions:</p>' +
+                        '<ul>' + 
+                        response.data.descriptions.map(desc => '<li>' + desc + '</li>').join('') +
+                        '</ul>'
+                    );
+                } else {
+                    $('#test-results').html('<h3>❌ AI Error:</h3><p>' + response.error + '</p>');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.log('AJAX Error:', error, xhr.responseText);
+                $('#test-results').html(
+                    '<h3>❌ Connection Error:</h3>' +
+                    '<p>Status: ' + status + '</p>' +
+                    '<p>Error: ' + error + '</p>' +
+                    '<p>Response: ' + xhr.responseText + '</p>'
+                );
+            }
+        });
+    }
+    
+    // Run test when page loads
+    $(document).ready(function() {
+        setTimeout(testAIEndpoint, 1000);
+    });
+    </script>
+    
+    <br><br>
+    <p><strong>Instructions:</strong></p>
+    <ol>
+        <li>Make sure you're logged into SuiteCRM</li>
+        <li>Visit this page from your SuiteCRM domain</li>
+        <li>Check the results above</li>
+        <li>Open browser console (F12) for detailed logs</li>
+    </ol>
+</body>
+</html>

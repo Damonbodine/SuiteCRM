@@ -1,0 +1,409 @@
+<?php
+/**
+ * AI Winnability Analysis - Standalone Self-Contained Script
+ * Complete winnability analysis without external dependencies
+ */
+
+// Bootstrap SuiteCRM with proper session handling
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+
+define('sugarEntry', true);
+require_once('include/entryPoint.php');
+
+// Initialize authentication
+global $current_user;
+
+// Try to authenticate user if not already authenticated
+if (empty($current_user) || empty($current_user->id)) {
+    // Try to restore session
+    require_once('include/utils.php');
+    require_once('modules/Users/authentication/SugarAuthenticate/SugarAuthenticate.php');
+    
+    $auth = new SugarAuthenticate();
+    if ($auth->sessionAuthenticate()) {
+        // Session authentication succeeded
+        global $current_user;
+    } else {
+        // Redirect to login with return URL
+        $return_url = urlencode($_SERVER['REQUEST_URI']);
+        header("Location: index.php?action=Login&return_module=Cases&return_action=DetailView&return_id=" . ($_POST['record'] ?? ''));
+        exit;
+    }
+}
+
+// Final check - if still not authenticated, redirect
+if (empty($current_user) || empty($current_user->id)) {
+    header('Location: index.php');
+    exit;
+}
+
+// Only handle POST requests
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Location: index.php?module=Cases&action=index');
+    exit;
+}
+
+try {
+    // Get and validate case ID
+    $caseId = $_POST['record'] ?? $_POST['case_id'] ?? '';
+    if (empty($caseId)) {
+        redirectWithMessage('', 'Missing case ID for winnability analysis', 'error');
+        exit;
+    }
+    
+    // Load case bean
+    $case = BeanFactory::getBean('Cases', $caseId);
+    if (empty($case) || empty($case->id)) {
+        redirectWithMessage('', 'Case not found', 'error');
+        exit;
+    }
+    
+    // SECURITY: Check permissions
+    if (!$case->ACLAccess('edit')) {
+        redirectWithMessage($caseId, 'Access denied', 'error');
+        exit;
+    }
+    
+    // Perform winnability analysis
+    $analysis = performWinnabilityAnalysis($case);
+    
+    if ($analysis) {
+        // Save analysis results to database
+        saveWinnabilityResults($case, $analysis);
+        addWinnabilityCaseUpdate($case, $analysis);
+        redirectWithMessage($caseId, 'Winnability analysis completed successfully!', 'success');
+    } else {
+        redirectWithMessage($caseId, 'Winnability analysis failed - please try again', 'error');
+    }
+    
+} catch (Exception $e) {
+    $GLOBALS['log']->error('Winnability Analysis Error: ' . $e->getMessage());
+    redirectWithMessage($caseId ?? '', 'Analysis error occurred - please try again', 'error');
+}
+
+/**
+ * Perform comprehensive winnability analysis
+ */
+function performWinnabilityAnalysis($case)
+{
+    try {
+        // Analyze various case factors
+        $caseStrength = analyzeCaseStrength($case);
+        $evidenceQuality = analyzeEvidenceQuality($case);
+        $legalPrecedents = analyzeLegalPrecedents($case);
+        $caseComplexity = analyzeCaseComplexity($case);
+        
+        // Calculate weighted winnability percentage
+        $winnabilityScore = (
+            ($caseStrength * 0.30) +      // 30% weight for case strength
+            ($evidenceQuality * 0.25) +   // 25% weight for evidence quality
+            ($legalPrecedents * 0.25) +   // 25% weight for legal precedents
+            ((100 - $caseComplexity) * 0.20) // 20% weight for complexity (inverse)
+        );
+        
+        // Cap winnability between 10% and 95%
+        $winnabilityPercentage = max(10, min(95, round($winnabilityScore)));
+        
+        // Generate reasoning factors
+        $reasoningFactors = generateReasoningFactors($case, $caseStrength, $evidenceQuality, $legalPrecedents, $caseComplexity);
+        
+        return array(
+            'winnability_percentage' => $winnabilityPercentage,
+            'case_strength' => $caseStrength,
+            'evidence_quality' => $evidenceQuality,
+            'legal_precedents' => $legalPrecedents,
+            'case_complexity' => $caseComplexity,
+            'reasoning_factors' => $reasoningFactors,
+            'confidence_score' => 0.8, // High confidence for local analysis
+            'analysis_method' => 'local_comprehensive'
+        );
+        
+    } catch (Exception $e) {
+        $GLOBALS['log']->error('Winnability Analysis Error: ' . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Analyze case strength based on case details
+ */
+function analyzeCaseStrength($case)
+{
+    $score = 50; // Base score
+    
+    // Analyze case description for strength indicators
+    $description = strtolower($case->description ?? '');
+    
+    // Positive indicators
+    if (strpos($description, 'strong evidence') !== false) $score += 15;
+    if (strpos($description, 'clear liability') !== false) $score += 15;
+    if (strpos($description, 'documented') !== false) $score += 10;
+    if (strpos($description, 'witness') !== false) $score += 10;
+    if (strpos($description, 'contract breach') !== false) $score += 10;
+    
+    // Negative indicators
+    if (strpos($description, 'disputed') !== false) $score -= 10;
+    if (strpos($description, 'unclear') !== false) $score -= 10;
+    if (strpos($description, 'complex') !== false) $score -= 5;
+    
+    // Case priority influence
+    if ($case->priority === 'High') $score += 10;
+    if ($case->priority === 'Low') $score -= 5;
+    
+    return max(10, min(90, $score));
+}
+
+/**
+ * Analyze evidence quality
+ */
+function analyzeEvidenceQuality($case)
+{
+    $score = 50; // Base score
+    
+    $description = strtolower($case->description ?? '');
+    
+    // Evidence quality indicators
+    if (strpos($description, 'documentation') !== false) $score += 15;
+    if (strpos($description, 'emails') !== false) $score += 10;
+    if (strpos($description, 'contracts') !== false) $score += 15;
+    if (strpos($description, 'photos') !== false) $score += 10;
+    if (strpos($description, 'video') !== false) $score += 10;
+    if (strpos($description, 'expert') !== false) $score += 10;
+    
+    // Poor evidence indicators
+    if (strpos($description, 'verbal') !== false) $score -= 10;
+    if (strpos($description, 'hearsay') !== false) $score -= 15;
+    if (strpos($description, 'no documentation') !== false) $score -= 20;
+    
+    return max(10, min(90, $score));
+}
+
+/**
+ * Analyze legal precedents favorability
+ */
+function analyzeLegalPrecedents($case)
+{
+    $score = 50; // Base score
+    
+    $caseType = strtolower($case->type ?? '');
+    $description = strtolower($case->description ?? '');
+    
+    // Case type precedent analysis
+    switch ($caseType) {
+        case 'contract':
+            $score += 10; // Contract cases generally have clear precedents
+            break;
+        case 'personal injury':
+            $score += 5; // Well-established area of law
+            break;
+        case 'employment':
+            $score += 5; // Clear employment law precedents
+            break;
+        case 'intellectual property':
+            $score -= 5; // More complex precedent analysis
+            break;
+    }
+    
+    // Precedent indicators in description
+    if (strpos($description, 'similar cases') !== false) $score += 10;
+    if (strpos($description, 'established law') !== false) $score += 10;
+    if (strpos($description, 'precedent') !== false) $score += 10;
+    if (strpos($description, 'novel') !== false) $score -= 15;
+    if (strpos($description, 'first impression') !== false) $score -= 20;
+    
+    return max(10, min(90, $score));
+}
+
+/**
+ * Analyze case complexity (lower is better)
+ */
+function analyzeCaseComplexity($case)
+{
+    $complexity = 30; // Base complexity
+    
+    $description = strtolower($case->description ?? '');
+    
+    // Complexity indicators
+    if (strpos($description, 'multiple parties') !== false) $complexity += 15;
+    if (strpos($description, 'cross-claims') !== false) $complexity += 15;
+    if (strpos($description, 'expert testimony') !== false) $complexity += 10;
+    if (strpos($description, 'federal') !== false) $complexity += 10;
+    if (strpos($description, 'class action') !== false) $complexity += 20;
+    if (strpos($description, 'international') !== false) $complexity += 15;
+    
+    // Simplicity indicators
+    if (strpos($description, 'straightforward') !== false) $complexity -= 10;
+    if (strpos($description, 'simple') !== false) $complexity -= 10;
+    if (strpos($description, 'clear cut') !== false) $complexity -= 15;
+    
+    return max(10, min(80, $complexity));
+}
+
+/**
+ * Generate detailed reasoning factors
+ */
+function generateReasoningFactors($case, $caseStrength, $evidenceQuality, $legalPrecedents, $caseComplexity)
+{
+    $factors = array();
+    
+    // Case strength assessment
+    if ($caseStrength >= 70) {
+        $factors[] = "Strong case merits (Score: {$caseStrength}/100)";
+    } elseif ($caseStrength >= 50) {
+        $factors[] = "Moderate case strength (Score: {$caseStrength}/100)";
+    } else {
+        $factors[] = "Weak case foundation (Score: {$caseStrength}/100)";
+    }
+    
+    // Evidence quality assessment
+    if ($evidenceQuality >= 70) {
+        $factors[] = "High-quality evidence available (Score: {$evidenceQuality}/100)";
+    } elseif ($evidenceQuality >= 50) {
+        $factors[] = "Adequate evidence quality (Score: {$evidenceQuality}/100)";
+    } else {
+        $factors[] = "Evidence quality concerns (Score: {$evidenceQuality}/100)";
+    }
+    
+    // Legal precedents assessment
+    if ($legalPrecedents >= 70) {
+        $factors[] = "Favorable legal precedents (Score: {$legalPrecedents}/100)";
+    } elseif ($legalPrecedents >= 50) {
+        $factors[] = "Mixed precedent outlook (Score: {$legalPrecedents}/100)";
+    } else {
+        $factors[] = "Challenging legal precedents (Score: {$legalPrecedents}/100)";
+    }
+    
+    // Complexity assessment
+    if ($caseComplexity <= 30) {
+        $factors[] = "Low case complexity (Score: {$caseComplexity}/100)";
+    } elseif ($caseComplexity <= 50) {
+        $factors[] = "Moderate complexity (Score: {$caseComplexity}/100)";
+    } else {
+        $factors[] = "High complexity case (Score: {$caseComplexity}/100)";
+    }
+    
+    // Case type specific factors
+    $caseType = $case->type ?? 'General';
+    $factors[] = "Case Type: {$caseType}";
+    
+    if (!empty($case->priority)) {
+        $factors[] = "Priority Level: {$case->priority}";
+    }
+    
+    return $factors;
+}
+
+/**
+ * Save winnability analysis results to database
+ */
+function saveWinnabilityResults($case, $analysis)
+{
+    // Store winnability percentage as suggested status for display
+    $winnability_percentage = $analysis['winnability_percentage'];
+    $case->ai_suggested_status = "Winnability: {$winnability_percentage}% (Comprehensive Analysis)";
+    
+    // Store winnability as confidence score (convert percentage to decimal)
+    $case->ai_confidence_score = $winnability_percentage / 100;
+    
+    // Update analysis timestamp
+    $case->ai_last_analysis = date('Y-m-d H:i:s');
+    
+    // Store comprehensive analysis data
+    $case->ai_analysis_factors = json_encode(array(
+        'winnability_percentage' => $winnability_percentage,
+        'case_strength' => $analysis['case_strength'],
+        'evidence_quality' => $analysis['evidence_quality'],
+        'legal_precedents' => $analysis['legal_precedents'],
+        'case_complexity' => $analysis['case_complexity'],
+        'reasoning_factors' => $analysis['reasoning_factors'],
+        'confidence_score' => $analysis['confidence_score'],
+        'analysis_method' => $analysis['analysis_method'],
+        'timestamp' => time()
+    ));
+    
+    // Mark for review if winnability is concerning (below 40%)
+    $case->ai_status_needs_review = ($winnability_percentage < 40) ? 1 : 0;
+    
+    $case->save(false); // Save without triggering hooks
+}
+
+/**
+ * Add case update with winnability analysis results
+ */
+function addWinnabilityCaseUpdate($case, $analysis)
+{
+    try {
+        global $current_user;
+        
+        $winnability_percentage = $analysis['winnability_percentage'];
+        $reasoning_factors = $analysis['reasoning_factors'];
+        $confidence_score = round($analysis['confidence_score'] * 100);
+        
+        $description = "🤖 **AI Winnability Analysis Complete**\n\n";
+        $description .= "**🎯 Winnability Assessment:** {$winnability_percentage}%\n";
+        $description .= "**✅ Analysis Confidence:** {$confidence_score}%\n\n";
+        
+        $description .= "**📊 Factor Breakdown:**\n";
+        $description .= "• Case Strength: {$analysis['case_strength']}/100\n";
+        $description .= "• Evidence Quality: {$analysis['evidence_quality']}/100\n";
+        $description .= "• Legal Precedents: {$analysis['legal_precedents']}/100\n";
+        $description .= "• Case Complexity: {$analysis['case_complexity']}/100\n\n";
+        
+        $description .= "**📋 Key Analysis Points:**\n";
+        foreach ($reasoning_factors as $factor) {
+            $description .= "• {$factor}\n";
+        }
+        
+        $description .= "\n**💡 Recommendation:**\n";
+        if ($winnability_percentage >= 70) {
+            $description .= "Strong case - recommend proceeding with confidence.";
+        } elseif ($winnability_percentage >= 50) {
+            $description .= "Moderate winnability - proceed with standard precautions.";
+        } elseif ($winnability_percentage >= 30) {
+            $description .= "Lower winnability - consider risk factors carefully.";
+        } else {
+            $description .= "High risk case - detailed review recommended before proceeding.";
+        }
+        
+        $description .= "\n\n---\n";
+        $description .= "*This analysis is based on case data patterns and should be used as a strategic guide alongside professional legal judgment.*";
+        
+        // Insert case update record
+        $caseUpdate = BeanFactory::newBean('AOP_Case_Updates');
+        $caseUpdate->name = '🤖 AI Winnability Analysis - ' . date('M j, Y g:i A');
+        $caseUpdate->description = $description;
+        $caseUpdate->case_id = $case->id;
+        $caseUpdate->contact_id = !empty($case->primary_contact_id) ? $case->primary_contact_id : '';
+        $caseUpdate->internal = true; // Mark as internal update
+        $caseUpdate->assigned_user_id = $current_user->id;
+        $caseUpdate->save();
+        
+    } catch (Exception $e) {
+        $GLOBALS['log']->error('Winnability Case Update Creation Error: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Redirect with message helper
+ */
+function redirectWithMessage($caseId, $message, $type = 'info')
+{
+    if (!empty($message)) {
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
+        $_SESSION['ai_analysis_message'] = $message;
+        $_SESSION['ai_analysis_type'] = $type;
+    }
+    
+    if (!empty($caseId)) {
+        $redirectUrl = "index.php?module=Cases&action=DetailView&record=" . urlencode($caseId);
+    } else {
+        $redirectUrl = "index.php?module=Cases&action=index";
+    }
+    
+    header("Location: " . $redirectUrl);
+    exit;
+}

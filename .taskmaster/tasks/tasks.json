@@ -1,0 +1,12 @@
+{
+  "version": "1.0",
+  "tags": {
+    "master": {
+      "metadata": {
+        "created": "2025-01-24T18:30:00Z",
+        "description": "SuiteCRM AI Case Intake and Analytics Implementation"
+      },
+      "tasks": []
+    }
+  }
+}

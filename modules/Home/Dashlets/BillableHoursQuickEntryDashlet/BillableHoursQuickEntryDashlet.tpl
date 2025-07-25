@@ -69,11 +69,6 @@
             <div class="col-xs-12">
                 <label for="description_{$id}" style="font-weight: bold; margin-bottom: 3px; display: block;">
                     {$strings.LBL_DESCRIPTION}:
-                    <button type="button" id="voice_btn_{$id}" class="btn btn-xs btn-info" 
-                            onclick="BillableHours.startVoiceInput('{$id}')" 
-                            style="float: right; margin-top: -2px;">
-                        <i class="fa fa-microphone"></i> Voice
-                    </button>
                 </label>
                 <textarea id="description_{$id}" name="description" class="form-control"
                           rows="2" placeholder="{$strings.LBL_DESCRIPTION_PLACEHOLDER}"

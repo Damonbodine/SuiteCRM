@@ -323,21 +323,62 @@ BillableHours.AI = {
         var suggestionsDiv = document.createElement('div');
         suggestionsDiv.id = 'ai_suggestions_' + dashletId;
         suggestionsDiv.className = 'ai-suggestions-dropdown';
-        suggestionsDiv.style.cssText = 'position: absolute; background: white; border: 1px solid #ccc; border-radius: 4px; max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 2px 4px rgba(0,0,0,0.1);';
+        suggestionsDiv.style.cssText = 'position: absolute; background: white; border: 1px solid #ccc; border-radius: 4px; max-height: 200px; overflow-y: auto; z-index: 1001; box-shadow: 0 4px 8px rgba(0,0,0,0.15);';
+        
+        // Add close button
+        var closeBtn = document.createElement('div');
+        closeBtn.innerHTML = '<i class="fa fa-times"></i> Close';
+        closeBtn.style.cssText = 'position: absolute; top: 5px; right: 5px; padding: 3px 6px; background: #e74c3c; color: white; font-size: 10px; border-radius: 3px; cursor: pointer; z-index: 1002;';
+        closeBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            suggestionsDiv.remove();
+            console.log('AI: Manual close clicked');
+        });
+        suggestionsDiv.appendChild(closeBtn);
         
         descriptions.forEach(function(desc, index) {
             var item = document.createElement('div');
             item.className = 'ai-suggestion-item';
-            item.style.cssText = 'padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 12px;';
+            item.style.cssText = 'padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 12px; user-select: none; transition: background-color 0.2s;';
             item.innerHTML = '<i class="fa fa-lightbulb-o" style="color: #f39c12; margin-right: 5px;"></i>' + desc;
+            item.setAttribute('data-suggestion', desc);
             
-            item.onmouseover = function() { this.style.background = '#f5f5f5'; };
-            item.onmouseout = function() { this.style.background = 'white'; };
-            item.onclick = function() {
+            // Multiple event listeners for better compatibility
+            item.addEventListener('mouseenter', function() { 
+                this.style.background = '#f5f5f5'; 
+                console.log('AI: Hovering suggestion:', desc);
+            });
+            item.addEventListener('mouseleave', function() { 
+                this.style.background = 'white'; 
+            });
+            
+            // Primary click handler
+            item.addEventListener('click', function(e) {
+                console.log('AI: Click detected on:', desc);
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                
                 descField.value = desc;
-                suggestionsDiv.remove();
+                console.log('AI: Set description to:', descField.value);
+                
+                // Force remove dropdown
+                var dropdown = document.getElementById('ai_suggestions_' + dashletId);
+                if (dropdown) {
+                    dropdown.parentNode.removeChild(dropdown);
+                    console.log('AI: Dropdown removed');
+                }
+                
                 descField.focus();
-            };
+                console.log('AI: Selected suggestion complete:', desc);
+            });
+            
+            // Backup click handler
+            item.addEventListener('mousedown', function(e) {
+                console.log('AI: Mousedown on:', desc);
+                e.preventDefault();
+            });
             
             suggestionsDiv.appendChild(item);
         });
@@ -349,6 +390,14 @@ BillableHours.AI = {
         suggestionsDiv.style.width = rect.width + 'px';
         
         document.body.appendChild(suggestionsDiv);
+        
+        // Add keyboard support
+        descField.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                suggestionsDiv.remove();
+                e.preventDefault();
+            }
+        });
         
         // Hide suggestions when clicking elsewhere
         setTimeout(function() {
@@ -476,6 +525,15 @@ BillableHours.AI = {
             // Trigger time prediction
             var caseId = document.getElementById('case_select_' + dashletId).value;
             BillableHours.AI.predictDuration(dashletId, bestSuggestion.activity_type, caseId);
+        }
+    },
+    
+    // Force close any open suggestion dropdowns
+    closeAllSuggestions: function(dashletId) {
+        var existingSuggestions = document.getElementById('ai_suggestions_' + dashletId);
+        if (existingSuggestions) {
+            existingSuggestions.remove();
+            console.log('AI: Closed suggestion dropdown');
         }
     }
 };

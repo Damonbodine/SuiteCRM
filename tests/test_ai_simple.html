@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple AI Test</title>
+</head>
+<body>
+    <h2>AI Endpoint Test</h2>
+    <div id="results"></div>
+    
+    <script>
+    // Simple test without dependencies
+    function testAI() {
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', 'index.php', true);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                document.getElementById('results').innerHTML = 
+                    '<h3>Response Status: ' + xhr.status + '</h3>' +
+                    '<pre>' + xhr.responseText + '</pre>';
+            }
+        };
+        
+        var params = 'entryPoint=aiBillableHours&ai_action=get_descriptions&activity_type=court_appearance&to_pdf=true';
+        xhr.send(params);
+        
+        console.log('Testing AI endpoint with params:', params);
+    }
+    
+    // Auto-run test
+    setTimeout(testAI, 1000);
+    </script>
+    
+    <p>This page tests the AI endpoint directly. Check console and results above.</p>
+</body>
+</html>
