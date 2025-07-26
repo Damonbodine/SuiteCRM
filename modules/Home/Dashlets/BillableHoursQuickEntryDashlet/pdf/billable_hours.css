@@ -1,0 +1,202 @@
+/* 
+ * Billable Hours PDF Styling
+ * Professional styling for legal billing PDF reports
+ */
+
+body {
+    font-family: DejaVuSansCondensed, Arial, sans-serif;
+    font-size: 10pt;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+}
+
+/* Report Header */
+.report-header {
+    text-align: center;
+    margin-bottom: 30px;
+    border-bottom: 2px solid #2c3e50;
+    padding-bottom: 15px;
+}
+
+.report-header h1 {
+    font-size: 18pt;
+    font-weight: bold;
+    color: #2c3e50;
+    margin: 0 0 10px 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.report-header p {
+    margin: 5px 0;
+    font-size: 9pt;
+    color: #666;
+}
+
+/* Tables */
+.report-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 25px;
+    font-size: 9pt;
+}
+
+.report-table th {
+    background-color: #34495e;
+    color: white;
+    font-weight: bold;
+    padding: 10px 8px;
+    text-align: left;
+    border: 1px solid #2c3e50;
+    font-size: 8pt;
+    text-transform: uppercase;
+}
+
+.report-table td {
+    padding: 8px;
+    border: 1px solid #bdc3c7;
+    vertical-align: top;
+}
+
+.report-table tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+.report-table tr:hover {
+    background-color: #e8f4f8;
+}
+
+/* Total rows */
+.total-row {
+    background-color: #ecf0f1 !important;
+    font-weight: bold;
+    border-top: 2px solid #34495e;
+}
+
+.total-row td {
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+/* Section headers */
+h3 {
+    color: #2c3e50;
+    font-size: 12pt;
+    font-weight: bold;
+    margin: 25px 0 15px 0;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #bdc3c7;
+}
+
+/* Totals section */
+.totals-section {
+    margin-top: 40px;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border: 2px solid #34495e;
+    border-radius: 5px;
+}
+
+.totals-section h3 {
+    margin-top: 0;
+    color: #34495e;
+    text-align: center;
+    border-bottom: 2px solid #34495e;
+    padding-bottom: 10px;
+}
+
+.totals-table {
+    width: 100%;
+    margin: 0 auto;
+    border-collapse: collapse;
+}
+
+.totals-table td {
+    padding: 10px 15px;
+    border: 1px solid #34495e;
+    font-weight: bold;
+}
+
+.totals-table td:first-child {
+    background-color: #ecf0f1;
+    width: 60%;
+    text-align: right;
+}
+
+.totals-table td:last-child {
+    background-color: white;
+    text-align: left;
+    color: #27ae60;
+    font-size: 11pt;
+}
+
+/* Page breaks */
+.page-break {
+    page-break-after: always;
+}
+
+/* Amount formatting */
+.amount {
+    text-align: right;
+    font-weight: bold;
+    color: #27ae60;
+}
+
+/* Date formatting */
+.date {
+    white-space: nowrap;
+    font-size: 8pt;
+}
+
+/* Case name styling */
+.case-name {
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+/* Activity type styling */
+.activity-type {
+    font-style: italic;
+    color: #7f8c8d;
+}
+
+/* Duration styling */
+.duration {
+    text-align: center;
+    font-weight: bold;
+}
+
+/* Professional footer */
+.report-footer {
+    margin-top: 50px;
+    padding-top: 20px;
+    border-top: 1px solid #bdc3c7;
+    text-align: center;
+    font-size: 8pt;
+    color: #7f8c8d;
+}
+
+/* Print optimizations */
+@media print {
+    body {
+        margin: 0;
+        padding: 15px;
+    }
+    
+    .report-header {
+        margin-bottom: 20px;
+    }
+    
+    .report-table {
+        font-size: 8pt;
+    }
+    
+    .report-table th {
+        padding: 6px 4px;
+    }
+    
+    .report-table td {
+        padding: 4px;
+    }
+}

@@ -60,8 +60,11 @@ $(document).ready(function () {
     $('html, body').animate({scrollTop: 0}, 500); // Scroll speed to the top
   });
 });
-YAHOO.util.Event.onAvailable('sitemapLinkSpan', function () {
-  document.getElementById('sitemapLinkSpan').onclick = function () {
+// Phase 1 YUI Elimination: Replace YAHOO.util.Event.onAvailable with jQuery
+$(document).ready(function() {
+  var sitemapLink = document.getElementById('sitemapLinkSpan');
+  if (sitemapLink) {
+    sitemapLink.onclick = function () {
     ajaxStatus.showStatus(SUGAR.language.get('app_strings', 'LBL_LOADING_PAGE'));
     var smMarkup = '';
     var callback = {
@@ -79,8 +82,16 @@ YAHOO.util.Event.onAvailable('sitemapLinkSpan', function () {
         }
       }
     }
-    postData = 'module=Home&action=sitemap&GetSiteMap=now&sugar_body_only=true';
-    YAHOO.util.Connect.asyncRequest('POST', 'index.php', callback, postData);
+    var postData = 'module=Home&action=sitemap&GetSiteMap=now&sugar_body_only=true';
+    // Phase 1 YUI Elimination: Replace YAHOO.util.Connect.asyncRequest with jQuery AJAX
+    $.ajax({
+      type: 'POST',
+      url: 'index.php',
+      data: postData,
+      success: callback.success,
+      error: callback.failure
+    });
+    }
   }
 });
 function IKEADEBUG() {
@@ -230,7 +241,12 @@ SUGAR.append(SUGAR.themes, {
         oMenuBar = currMenuBar;
       }
     }
-    YAHOO.util.Event.onAvailable('subModuleList', IKEADEBUG);
+    // Phase 1 YUI Elimination: Replace YAHOO.util.Event.onAvailable with jQuery check
+    $(document).ready(function() {
+      if (document.getElementById('subModuleList')) {
+        IKEADEBUG();
+      }
+    });
   }, setCurrentTab: function () {
   }
 });
