@@ -42,6 +42,8 @@ $dashletStrings['BillableHoursQuickEntryDashlet'] = array(
     'LBL_LOG_TIME'                  => 'Log Time',
     'LBL_CLEAR'                     => 'Clear Form',
     'LBL_SAVING'                    => 'Saving...',
+    'LBL_EXPORT_PDF'                => 'Export PDF',
+    'LBL_AI_ASSIST'                 => 'AI Assist',
     
     // Status Messages
     'LBL_TIMER_STARTED'             => 'Timer started',
