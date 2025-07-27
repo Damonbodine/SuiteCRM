@@ -536,4 +536,180 @@ class BillableHoursQuickEntryDashlet extends Dashlet
         $parts = explode("Billable Time Details:", $description);
         return trim($parts[0]);
     }
+    
+    /**
+     * Generate professional legal billing narrative using AI
+     */
+    public function generateBillingNarrative()
+    {
+        global $current_user;
+        
+        $response = array('success' => false, 'narrative' => '', 'error' => '');
+        
+        try {
+            // Get parameters
+            $rawDescription = $_REQUEST['raw_description'] ?? '';
+            $activityType = $_REQUEST['activity_type'] ?? '';
+            $caseId = $_REQUEST['case_id'] ?? '';
+            
+            if (empty($rawDescription)) {
+                $response['error'] = 'Description is required for AI enhancement';
+                ob_clean();
+                header('Content-Type: application/json');
+                echo json_encode($response);
+                die();
+            }
+            
+            // Get case information for context
+            $caseInfo = '';
+            if (!empty($caseId)) {
+                $case = BeanFactory::retrieveBean('Cases', $caseId);
+                if ($case) {
+                    $caseInfo = "Case: " . $case->name . " (Type: " . ($case->type ?? 'Criminal Defense') . ")";
+                }
+            }
+            
+            // Create AI prompt for legal billing narrative
+            $prompt = $this->buildLegalBillingPrompt($rawDescription, $activityType, $caseInfo);
+            
+            // Call AI service (using a mock implementation for now)
+            $aiNarrative = $this->callAIService($prompt);
+            
+            if ($aiNarrative) {
+                $response['success'] = true;
+                $response['narrative'] = $aiNarrative;
+                $response['original'] = $rawDescription;
+            } else {
+                $response['error'] = 'AI service temporarily unavailable';
+            }
+            
+        } catch (Exception $e) {
+            $GLOBALS['log']->error('BillableHours AI Narrative Error: ' . $e->getMessage());
+            $response['error'] = 'AI enhancement failed: ' . $e->getMessage();
+        }
+        
+        ob_clean();
+        header('Content-Type: application/json');
+        echo json_encode($response);
+        die();
+    }
+    
+    /**
+     * Build AI prompt for legal billing narrative
+     */
+    private function buildLegalBillingPrompt($rawDescription, $activityType, $caseInfo)
+    {
+        $activityContext = array(
+            'court_appearance' => 'court proceedings and litigation activities',
+            'client_meeting' => 'client consultation and strategic planning',
+            'case_research' => 'legal research and case law analysis',
+            'document_review' => 'document examination and analysis',
+            'legal_writing' => 'legal document preparation and drafting',
+            'phone_call' => 'telephonic communication and consultation',
+            'investigation' => 'case investigation and fact-gathering',
+            'trial_prep' => 'trial preparation and case strategy development',
+            'other' => 'legal services and case management'
+        );
+        
+        $context = $activityContext[$activityType] ?? 'legal services';
+        
+        $prompt = "Convert this casual time entry description into professional legal billing language suitable for criminal defense attorney billing records:
+
+Original Description: \"{$rawDescription}\"
+Activity Type: {$activityType} ({$context})
+{$caseInfo}
+
+Requirements:
+1. Use professional legal terminology
+2. Be specific about the legal work performed
+3. Maintain appropriate attorney-client privilege language
+4. Follow standard legal billing practices
+5. Keep it concise but descriptive (1-2 sentences)
+6. Include action-oriented language (e.g., 'analyzed', 'reviewed', 'consulted', 'researched')
+
+Examples of good legal billing descriptions:
+- 'Client conference regarding case strategy development and legal options analysis pursuant to pending criminal charges'
+- 'Legal research and analysis of Fourth Amendment precedents applicable to search and seizure issues in client matter'
+- 'Review and analysis of prosecutorial discovery materials and witness statements'
+- 'Preparation of motion to suppress evidence based on constitutional violations'
+
+Enhanced Description:";
+        
+        return $prompt;
+    }
+    
+    /**
+     * Call AI service for narrative generation
+     * This is a mock implementation - in production you'd integrate with OpenAI, Claude, etc.
+     */
+    private function callAIService($prompt)
+    {
+        // Mock AI responses based on common patterns
+        // In production, this would call an actual AI API
+        
+        $rawDescription = strtolower($_REQUEST['raw_description'] ?? '');
+        $activityType = $_REQUEST['activity_type'] ?? '';
+        
+        // Pattern-based enhancement rules
+        $enhancements = array(
+            // Client meetings
+            'met with client' => 'Client conference regarding case strategy development and legal options analysis',
+            'talked to client' => 'Telephonic consultation with client regarding case status and procedural matters',
+            'client meeting' => 'Client conference regarding case strategy development and ongoing legal representation',
+            
+            // Court appearances
+            'went to court' => 'Court appearance for scheduled hearing and advocacy on behalf of client',
+            'court hearing' => 'Court appearance and oral argument before the tribunal regarding client matter',
+            'arraignment' => 'Client representation at arraignment proceeding and entry of plea',
+            
+            // Research activities
+            'researched' => 'Legal research and analysis of applicable statutes and case law precedents',
+            'looked up law' => 'Legal research and analysis of relevant jurisprudence and statutory authority',
+            'case law research' => 'Comprehensive legal research and analysis of controlling case law and precedents',
+            
+            // Document work
+            'reviewed documents' => 'Review and analysis of case-related documents and evidentiary materials',
+            'wrote motion' => 'Preparation and drafting of motion practice documentation for court filing',
+            'drafted letter' => 'Preparation of legal correspondence regarding client representation matters',
+            
+            // Communication
+            'called prosecutor' => 'Prosecutorial communication regarding plea negotiations and case resolution discussions',
+            'spoke with DA' => 'Communication with prosecuting attorney regarding case disposition and settlement discussions',
+            'phone call' => 'Telephonic consultation and communication regarding ongoing legal representation'
+        );
+        
+        // Find best match
+        $enhancedDescription = null;
+        foreach ($enhancements as $pattern => $enhancement) {
+            if (strpos($rawDescription, $pattern) !== false) {
+                $enhancedDescription = $enhancement;
+                break;
+            }
+        }
+        
+        // Fallback enhancement based on activity type
+        if (!$enhancedDescription) {
+            $activityEnhancements = array(
+                'client_meeting' => 'Client consultation regarding legal strategy and case development matters',
+                'court_appearance' => 'Court appearance and legal advocacy on behalf of client',
+                'case_research' => 'Legal research and analysis of applicable law and precedents',
+                'document_review' => 'Review and analysis of case-related documentation and materials',
+                'legal_writing' => 'Preparation of legal documentation and written advocacy materials',
+                'phone_call' => 'Telephonic communication regarding ongoing legal representation',
+                'investigation' => 'Case investigation and fact-gathering activities for client defense',
+                'trial_prep' => 'Trial preparation and case strategy development activities',
+                'other' => 'Legal services and professional consultation regarding client matter'
+            );
+            
+            $enhancedDescription = $activityEnhancements[$activityType] ?? 
+                'Professional legal services rendered in connection with ongoing client representation';
+        }
+        
+        // Add case-specific context if available
+        if (!empty($_REQUEST['case_id'])) {
+            $enhancedDescription .= ' pursuant to pending criminal matter';
+        }
+        
+        return $enhancedDescription;
+    }
 }

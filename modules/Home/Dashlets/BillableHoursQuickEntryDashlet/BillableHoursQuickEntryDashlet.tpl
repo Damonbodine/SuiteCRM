@@ -69,10 +69,18 @@
             <div class="col-xs-12">
                 <label for="description_{$id}" style="font-weight: bold; margin-bottom: 3px; display: block;">
                     {$strings.LBL_DESCRIPTION}:
+                    <button type="button" id="ai_narrative_btn_{$id}" class="btn btn-info btn-xs" 
+                            onclick="BillableHours.AI.generateBillingNarrative('{$id}', document.getElementById('description_{$id}').value, document.getElementById('activity_type_{$id}').value, document.getElementById('case_select_{$id}').value)"
+                            style="float: right; margin-top: -2px;">
+                        <i class="fa fa-magic"></i> Enhance
+                    </button>
                 </label>
                 <textarea id="description_{$id}" name="description" class="form-control"
                           rows="2" placeholder="{$strings.LBL_DESCRIPTION_PLACEHOLDER}"
                           style="width: 100%; resize: vertical;" required></textarea>
+                <small class="help-text" style="color: #666; font-size: 10px; margin-top: 2px; display: block;">
+                    Type a casual description, then click "Enhance" to convert to professional legal billing language
+                </small>
             </div>
         </div>
 
@@ -192,6 +200,16 @@
     margin: 0;
     padding: 8px 12px;
     font-size: 12px;
+}
+
+.help-text {
+    font-style: italic;
+}
+
+.btn-xs {
+    font-size: 9px;
+    padding: 2px 5px;
+    line-height: 1.2;
 }
 
 .row {
