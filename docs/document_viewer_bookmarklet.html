@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SuiteCRM Document Viewer - Quick Inject</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .bookmarklet { background: #007bff; color: white; padding: 15px 25px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 10px 0; }
+        .bookmarklet:hover { background: #0056b3; color: white; text-decoration: none; }
+        .code-block { background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0; font-family: monospace; font-size: 12px; border: 1px solid #dee2e6; }
+        .instruction { background: #e7f3ff; padding: 15px; border-radius: 5px; margin: 10px 0; border-left: 4px solid #007bff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 SuiteCRM Document Viewer - Manual Injection</h1>
+        
+        <div class="instruction">
+            <h3>Quick Solution: Drag this bookmarklet to your bookmarks bar</h3>
+            <p>Then click it when you're on a SuiteCRM document detail page to add the viewer buttons.</p>
+        </div>
+        
+        <a href="javascript:(function(){
+var documentId=new URLSearchParams(window.location.search).get('record');
+if(!documentId){alert('❌ Not on a document detail page');return;}
+if($('#document_actions_section').length>0){alert('ℹ️ Viewer already loaded');return;}
+var html='<div id=\"document_actions_section\" style=\"margin:20px 0;padding:15px;background:#f8f9fa;border-left:4px solid #28a745;border-radius:4px;\"><h4><i class=\"fa fa-file-text\"></i> AI Document Actions</h4><button type=\"button\" class=\"btn btn-primary\" onclick=\"viewDoc()\" style=\"margin-right:10px;\"><i class=\"fa fa-eye\"></i> View Content</button><button type=\"button\" class=\"btn btn-success\" onclick=\"downloadDoc()\" style=\"margin-right:10px;\"><i class=\"fa fa-download\"></i> Download</button></div>';
+$('body').prepend(html);
+window.viewDoc=function(){
+$.get('index.php?entryPoint=viewDocument&document_id='+documentId,function(data){
+if(data.success){
+var modal='<div class=\"modal fade\" id=\"doc_modal\" tabindex=\"-1\"><div class=\"modal-dialog modal-lg\"><div class=\"modal-content\"><div class=\"modal-header\"><h4>Document Content</h4><button type=\"button\" class=\"close\" data-dismiss=\"modal\">&times;</button></div><div class=\"modal-body\"><pre style=\"white-space:pre-wrap;background:#f8f9fa;padding:15px;border-radius:4px;max-height:500px;overflow-y:auto;\">'+data.content+'</pre></div></div></div></div>';
+$('body').append(modal);
+$('#doc_modal').modal('show');
+}else{alert('❌ Error: '+data.message);}
+},'json').fail(function(){alert('❌ Failed to load document');});
+};
+window.downloadDoc=function(){
+window.open('index.php?entryPoint=downloadDocument&document_id='+documentId,'_blank');
+};
+alert('✅ Document viewer loaded! Buttons added at top of page.');
+})();" 
+        class="bookmarklet">📄 Add Document Viewer</a>
+        
+        <div class="instruction">
+            <h3>How to use:</h3>
+            <ol>
+                <li>Drag the blue button above to your browser's bookmarks bar</li>
+                <li>Navigate to your document detail page: <code>http://localhost:8080/index.php?module=Documents&action=DetailView&record=d555e860-b8e8-b4fa-9d37-68859cc0a00a</code></li>
+                <li>Click the bookmarklet in your bookmarks bar</li>
+                <li>You'll see "AI Document Actions" buttons appear at the top</li>
+                <li>Click "View Content" to see the AI-generated document</li>
+                <li>Click "Download" to download the file</li>
+            </ol>
+        </div>
+        
+        <div class="instruction">
+            <h3>Alternative: Manual Console Method</h3>
+            <p>If the bookmarklet doesn't work, you can:</p>
+            <ol>
+                <li>Go to your document page</li>
+                <li>Press F12 to open browser console</li>
+                <li>Paste the code below and press Enter</li>
+            </ol>
+        </div>
+        
+        <div class="code-block">
+// Manual injection code - paste in browser console
+var documentId = new URLSearchParams(window.location.search).get('record');
+if (!documentId) {
+    alert('❌ Not on a document detail page');
+} else {
+    // Add view button
+    var html = '<div style="margin:20px;padding:15px;background:#f8f9fa;border-left:4px solid #28a745;border-radius:4px;">' +
+               '<h4><i class="fa fa-file-text"></i> AI Document Actions</h4>' +
+               '<button class="btn btn-primary" onclick="viewDocContent()" style="margin-right:10px;">👁️ View Content</button>' +
+               '<button class="btn btn-success" onclick="downloadDocContent()">📥 Download</button>' +
+               '</div>';
+    $('body').prepend(html);
+    
+    // Add functions
+    window.viewDocContent = function() {
+        $.get('index.php?entryPoint=viewDocument&document_id=' + documentId, function(data) {
+            if (data.success) {
+                alert('📄 Document Content:\n\n' + data.content.substring(0, 500) + '...\n\n(First 500 characters shown)');
+            } else {
+                alert('❌ Error: ' + data.message);
+            }
+        }, 'json').fail(function() {
+            alert('❌ Failed to load document');
+        });
+    };
+    
+    window.downloadDocContent = function() {
+        window.open('index.php?entryPoint=downloadDocument&document_id=' + documentId, '_blank');
+    };
+    
+    alert('✅ Document viewer loaded!');
+}
+        </div>
+        
+        <div class="instruction">
+            <h3>Test URLs:</h3>
+            <p><strong>View Document Content:</strong><br>
+            <code>http://localhost:8080/index.php?entryPoint=viewDocument&document_id=d555e860-b8e8-b4fa-9d37-68859cc0a00a</code></p>
+            
+            <p><strong>Download Document:</strong><br>
+            <code>http://localhost:8080/index.php?entryPoint=downloadDocument&document_id=d555e860-b8e8-b4fa-9d37-68859cc0a00a</code></p>
+        </div>
+    </div>
+</body>
+</html>
