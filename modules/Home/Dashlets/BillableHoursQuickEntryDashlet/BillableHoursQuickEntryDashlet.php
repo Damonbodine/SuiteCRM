@@ -327,6 +327,9 @@ class BillableHoursQuickEntryDashlet extends Dashlet
         $ss = new Sugar_Smarty();
         $ss->assign('id', $this->id);
         $ss->assign('strings', $this->dashletStrings);
+        $ss->assign('default_start_date', date('Y-m-01')); // First day of current month
+        $ss->assign('default_end_date', date('Y-m-d'));   // Today
+        $ss->assign('activeCases', $this->getActiveCases());
         
         ob_clean();
         header('Content-Type: text/html');
