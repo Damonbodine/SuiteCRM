@@ -121,7 +121,7 @@
                 <button type="button" class="btn btn-default" data-dismiss="modal">
                     <i class="fa fa-times"></i> Cancel
                 </button>
-                <button type="button" id="generate_pdf_btn" class="btn btn-primary" onclick="BillableHours.generatePDF()">
+                <button type="button" id="generate_pdf_btn" class="btn btn-primary" onclick="BillableHours.generatePDF(window.currentDashletId)">
                     <i class="fa fa-file-pdf-o"></i> Generate PDF
                 </button>
             </div>

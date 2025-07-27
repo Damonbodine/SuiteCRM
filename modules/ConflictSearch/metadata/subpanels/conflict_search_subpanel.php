@@ -77,7 +77,8 @@ $subpanel_layout = array(
  * @param array $fields Field data from the record
  * @return string HTML formatted confidence summary
  */
-function formatConfidenceSummary($fields)
+if (!function_exists('formatConfidenceSummary')) {
+    function formatConfidenceSummary($fields)
 {
     $high = intval($fields['high_confidence_matches']['value'] ?? 0);
     $medium = intval($fields['medium_confidence_matches']['value'] ?? 0);
@@ -102,5 +103,6 @@ function formatConfidenceSummary($fields)
     $html .= '</div>';
     
     return $html;
+    }
 }
 ?>

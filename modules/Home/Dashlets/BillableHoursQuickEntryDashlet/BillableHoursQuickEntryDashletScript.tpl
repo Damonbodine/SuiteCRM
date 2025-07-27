@@ -525,6 +525,91 @@ BillableHours.AI = {
         }, BillableHours.buildPostData(params));
     },
     
+    // Generate professional legal billing narrative
+    generateBillingNarrative: function(dashletId, rawDescription, activityType, caseId) {
+        if (!rawDescription || rawDescription.length < 5) return;
+        
+        console.log('AI: Generating billing narrative for:', rawDescription);
+        
+        var params = {
+            module: 'Home',
+            action: 'CallMethodDashlet',
+            method: 'generateBillingNarrative',
+            dashlet_id: dashletId,
+            dashlet_class: 'BillableHoursQuickEntryDashlet',
+            raw_description: rawDescription,
+            activity_type: activityType || '',
+            case_id: caseId || '',
+            to_pdf: true
+        };
+        
+        // Show loading indicator
+        var descField = document.getElementById('description_' + dashletId);
+        var originalValue = descField.value;
+        var enhanceBtn = document.getElementById('ai_narrative_btn_' + dashletId);
+        
+        if (enhanceBtn) {
+            enhanceBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Enhancing...';
+            enhanceBtn.disabled = true;
+        }
+        
+        YAHOO.util.Connect.asyncRequest('POST', 'index.php', {
+            success: function(response) {
+                console.log('AI: Billing narrative response:', response.responseText);
+                try {
+                    var result = JSON.parse(response.responseText);
+                    if (result.success && result.narrative) {
+                        // Replace description with professional narrative
+                        descField.value = result.narrative;
+                        
+                        // Show success indicator
+                        BillableHours.showStatus(dashletId, 'Description enhanced with professional legal language', 'success');
+                        
+                        // Add visual indicator that AI was used
+                        var aiIndicator = document.getElementById('ai_narrative_indicator_' + dashletId);
+                        if (!aiIndicator) {
+                            aiIndicator = document.createElement('div');
+                            aiIndicator.id = 'ai_narrative_indicator_' + dashletId;
+                            aiIndicator.style.cssText = 'font-size: 10px; color: #27ae60; margin-top: 2px;';
+                            descField.parentNode.appendChild(aiIndicator);
+                        }
+                        aiIndicator.innerHTML = '<i class="fa fa-check-circle"></i> AI Enhanced: Professional legal billing language applied';
+                        
+                        // Auto-hide indicator after 10 seconds
+                        setTimeout(function() {
+                            if (aiIndicator) {
+                                aiIndicator.style.opacity = '0.5';
+                            }
+                        }, 10000);
+                        
+                    } else {
+                        BillableHours.showStatus(dashletId, result.error || 'Failed to enhance description', 'error');
+                        console.log('AI: Enhancement failed:', result.error);
+                    }
+                } catch (e) {
+                    console.log('AI: JSON parse error:', e);
+                    BillableHours.showStatus(dashletId, 'AI enhancement parsing failed', 'error');
+                }
+                
+                // Restore button
+                if (enhanceBtn) {
+                    enhanceBtn.innerHTML = '<i class="fa fa-magic"></i> Enhance';
+                    enhanceBtn.disabled = false;
+                }
+            },
+            failure: function(response) {
+                console.log('AI: Enhancement failed:', response);
+                BillableHours.showStatus(dashletId, 'AI enhancement connection failed', 'error');
+                
+                // Restore button
+                if (enhanceBtn) {
+                    enhanceBtn.innerHTML = '<i class="fa fa-magic"></i> Enhance';
+                    enhanceBtn.disabled = false;
+                }
+            }
+        }, BillableHours.buildPostData(params));
+    },
+    
     // Show activity type suggestions
     showActivitySuggestions: function(dashletId, suggestions) {
         var activityField = document.getElementById('activity_type_' + dashletId);
@@ -634,6 +719,9 @@ BillableHours.exportToPDF = function(dashletId) {
 };
 
 BillableHours.showPDFExportModal = function(dashletId) {
+    // Store dashlet ID globally for the modal
+    window.currentDashletId = dashletId;
+    
     // Create modal if it doesn't exist
     var modal = document.getElementById('pdf_export_modal');
     if (!modal) {
@@ -667,7 +755,7 @@ BillableHours.showPDFExportModal = function(dashletId) {
     }
 };
 
-BillableHours.generatePDF = function() {
+BillableHours.generatePDF = function(dashletId) {
     var form = document.getElementById('pdf_export_form');
     if (!form) return;
     
@@ -680,11 +768,12 @@ BillableHours.generatePDF = function() {
         params[pair[0]] = pair[1];
     }
     
-    // Add module and action
+    // Add module and action - CRITICAL: Include dashlet_id
     params.module = 'Home';
     params.action = 'CallMethodDashlet';
     params.method = 'generateBillableHoursPDF';
     params.dashlet_class = 'BillableHoursQuickEntryDashlet';
+    params.dashlet_id = dashletId || 'unknown';
     
     // Show loading state
     var generateBtn = document.getElementById('generate_pdf_btn');

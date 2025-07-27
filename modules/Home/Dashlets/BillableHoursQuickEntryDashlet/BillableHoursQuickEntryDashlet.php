@@ -154,7 +154,11 @@ class BillableHoursQuickEntryDashlet extends Dashlet
             $task->description = SugarCleaner::cleanHtml($_REQUEST['description']);
             $task->status = 'Completed';
             $task->assigned_user_id = $current_user->id;
-            $task->date_start = $_REQUEST['entry_date'] . ' ' . ($_REQUEST['entry_time'] ?: '00:00');
+            
+            // Properly format the date_start field
+            $entryDate = $_REQUEST['entry_date'] ?: date('Y-m-d');
+            $entryTime = $_REQUEST['entry_time'] ?: '00:00';
+            $task->date_start = $entryDate . ' ' . $entryTime . ':00';
             $task->date_due = $task->date_start;
             
             // Link to case if selected
@@ -345,6 +349,11 @@ class BillableHoursQuickEntryDashlet extends Dashlet
         global $current_user;
         
         try {
+            // CRITICAL: Clean all output buffers before PDF generation
+            while (ob_get_level()) {
+                ob_end_clean();
+            }
+            
             // Get parameters from request
             $startDate = $_REQUEST['start_date'] ?? date('Y-m-01');
             $endDate = $_REQUEST['end_date'] ?? date('Y-m-t');
@@ -353,18 +362,68 @@ class BillableHoursQuickEntryDashlet extends Dashlet
             // Get billable hours data
             $billableData = $this->getBillableHoursData($startDate, $endDate, $userId);
             
-            // Load PDF generation library or create simple PDF
-            require_once('modules/Home/Dashlets/BillableHoursQuickEntryDashlet/pdf_controller.php');
+            // Create HTML content with real data
+            $html = "<h1>Billable Hours Report</h1>";
+            $html .= "<p>Date Range: " . htmlspecialchars($startDate) . " to " . htmlspecialchars($endDate) . "</p>";
+            $html .= "<p>User: " . htmlspecialchars($current_user->full_name) . "</p>";
+            $html .= "<p>Generated: " . date('Y-m-d H:i:s') . "</p>";
             
-            $pdfController = new BillableHoursPDFController();
-            $pdfController->generatePDF($billableData, $startDate, $endDate);
+            if (empty($billableData)) {
+                $html .= "<h2>No Billable Hours Found</h2>";
+                $html .= "<p>No billable time entries were found for the selected date range.</p>";
+            } else {
+                $html .= "<h2>Billable Hours Summary (" . count($billableData) . " entries)</h2>";
+                $html .= "<table border='1' cellpadding='5' cellspacing='0' style='border-collapse: collapse; width: 100%;'>";
+                $html .= "<tr style='background-color: #f5f5f5;'>";
+                $html .= "<th>Date</th><th>Activity</th><th>Case</th><th>Duration</th><th>Rate</th><th>Amount</th><th>Description</th>";
+                $html .= "</tr>";
+                
+                $totalHours = 0;
+                $totalAmount = 0;
+                
+                foreach ($billableData as $entry) {
+                    $html .= "<tr>";
+                    $html .= "<td>" . htmlspecialchars($entry['date']) . "</td>";
+                    $html .= "<td>" . htmlspecialchars($entry['activity_type']) . "</td>";
+                    $html .= "<td>" . htmlspecialchars($entry['case_name']) . "</td>";
+                    $html .= "<td>" . number_format($entry['duration'], 2) . "h</td>";
+                    $html .= "<td>$" . number_format($entry['rate'], 2) . "</td>";
+                    $html .= "<td>$" . number_format($entry['amount'], 2) . "</td>";
+                    $html .= "<td>" . htmlspecialchars(substr($entry['description'], 0, 100)) . "</td>";
+                    $html .= "</tr>";
+                    
+                    $totalHours += $entry['duration'];
+                    $totalAmount += $entry['amount'];
+                }
+                
+                $html .= "<tr style='background-color: #e9e9e9; font-weight: bold;'>";
+                $html .= "<td colspan='3'>TOTALS</td>";
+                $html .= "<td>" . number_format($totalHours, 2) . "h</td>";
+                $html .= "<td>-</td>";
+                $html .= "<td>$" . number_format($totalAmount, 2) . "</td>";
+                $html .= "<td>-</td>";
+                $html .= "</tr>";
+                $html .= "</table>";
+            }
+            
+            // Send as downloadable HTML file for now (easier to debug)
+            header('Content-Type: application/octet-stream');
+            header('Content-Disposition: attachment; filename="billable_hours_' . date('Y-m-d') . '.html"');
+            header('Content-Length: ' . strlen($html));
+            echo $html;
+            exit();
             
         } catch (Exception $e) {
             $GLOBALS['log']->error('PDF Generation Error: ' . $e->getMessage());
-            ob_clean();
+            
+            // Clean output and send error
+            while (ob_get_level()) {
+                ob_end_clean();
+            }
+            
             header('Content-Type: application/json');
-            echo json_encode(array('success' => false, 'error' => 'PDF generation failed'));
-            die();
+            echo json_encode(array('success' => false, 'error' => 'PDF generation failed: ' . $e->getMessage()));
+            exit();
         }
     }
     
@@ -373,44 +432,108 @@ class BillableHoursQuickEntryDashlet extends Dashlet
      */
     private function getBillableHoursData($startDate, $endDate, $userId)
     {
+        global $db;
         $data = array();
         
         try {
-            // Query tasks that represent billable time entries
-            $query = "SELECT t.name, t.description, t.date_start, t.assigned_user_id,
-                             COALESCE(bd.billable_duration, 0) as duration,
-                             COALESCE(br.billable_rate, 0) as rate,
-                             COALESCE(ba.billable_amount, 0) as amount,
-                             c.name as case_name, c.case_number
+            // Query tasks that were created by the billable hours dashlet
+            // We look for tasks with "Billable Time Entry" in the name and completed status
+            // Handle both NULL date_start (use date_entered) and valid date_start
+            $query = "SELECT 
+                        t.id,
+                        t.name, 
+                        t.description, 
+                        t.date_start,
+                        t.date_entered,
+                        t.assigned_user_id,
+                        c.name as case_name, 
+                        c.case_number
                       FROM tasks t
                       LEFT JOIN cases c ON t.parent_id = c.id AND t.parent_type = 'Cases'
-                      LEFT JOIN (SELECT related_id, billable_duration FROM tasks_cstm WHERE related_id = t.id) bd ON 1=1
-                      LEFT JOIN (SELECT related_id, billable_rate FROM tasks_cstm WHERE related_id = t.id) br ON 1=1  
-                      LEFT JOIN (SELECT related_id, billable_amount FROM tasks_cstm WHERE related_id = t.id) ba ON 1=1
-                      WHERE t.assigned_user_id = ? 
-                      AND t.date_start BETWEEN ? AND ?
+                      WHERE t.assigned_user_id = '" . $db->quote($userId) . "'
+                      AND t.name LIKE '%Billable Time Entry%'
                       AND t.status = 'Completed'
+                      AND (
+                          (t.date_start IS NOT NULL AND DATE(t.date_start) BETWEEN '" . $db->quote($startDate) . "' AND '" . $db->quote($endDate) . "')
+                          OR
+                          (t.date_start IS NULL AND DATE(t.date_entered) BETWEEN '" . $db->quote($startDate) . "' AND '" . $db->quote($endDate) . "')
+                      )
                       AND t.deleted = 0
-                      ORDER BY t.date_start DESC";
+                      ORDER BY COALESCE(t.date_start, t.date_entered) DESC";
             
-            // For now, return mock data since the custom fields might not exist yet
-            $data = array(
-                array(
-                    'name' => 'Legal Research',
-                    'description' => 'Case law research for defense strategy',
-                    'date_start' => date('Y-m-d H:i:s'),
-                    'duration' => 1.5,
-                    'rate' => 250.00,
-                    'amount' => 375.00,
-                    'case_name' => 'AI Test Case',
-                    'case_number' => 'CR-2025-001'
-                )
-            );
+            $GLOBALS['log']->info("Billable Hours Query: " . $query);
+            
+            $result = $db->query($query);
+            
+            while ($row = $db->fetchByAssoc($result)) {
+                // Parse the billable hours data from the task description
+                $timeData = $this->parseTimeDataFromDescription($row['description']);
+                
+                // Use date_start if available, otherwise fall back to date_entered
+                $dateToUse = $row['date_start'] ?: $row['date_entered'];
+                
+                $data[] = array(
+                    'id' => $row['id'],
+                    'name' => $row['name'],
+                    'description' => $this->extractOriginalDescription($row['description']),
+                    'date' => date('Y-m-d', strtotime($dateToUse)),
+                    'time' => date('H:i', strtotime($dateToUse)),
+                    'duration' => $timeData['duration_hours'],
+                    'rate' => $timeData['hourly_rate'],
+                    'amount' => $timeData['total_amount'],
+                    'activity_type' => $timeData['activity_type'],
+                    'case_name' => $row['case_name'] ?: 'No Case',
+                    'case_number' => $row['case_number'] ?: ''
+                );
+            }
+            
+            $GLOBALS['log']->info("Found " . count($data) . " billable hours entries");
             
         } catch (Exception $e) {
             $GLOBALS['log']->error('getBillableHoursData Error: ' . $e->getMessage());
         }
         
         return $data;
+    }
+    
+    /**
+     * Parse time tracking data from task description
+     */
+    private function parseTimeDataFromDescription($description)
+    {
+        $timeData = array(
+            'duration_hours' => 0,
+            'hourly_rate' => 0,
+            'total_amount' => 0,
+            'activity_type' => 'Unknown'
+        );
+        
+        // Parse the structured data that we add to task descriptions
+        if (preg_match('/Duration: ([\d.]+) hours/', $description, $matches)) {
+            $timeData['duration_hours'] = floatval($matches[1]);
+        }
+        
+        if (preg_match('/Activity Type: (.+)/', $description, $matches)) {
+            $timeData['activity_type'] = trim($matches[1]);
+        }
+        
+        if (preg_match('/Hourly Rate: \$([\d.]+)/', $description, $matches)) {
+            $timeData['hourly_rate'] = floatval($matches[1]);
+        }
+        
+        if (preg_match('/Total Amount: \$([\d.]+)/', $description, $matches)) {
+            $timeData['total_amount'] = floatval($matches[1]);
+        }
+        
+        return $timeData;
+    }
+    
+    /**
+     * Extract the original description (before our time details)
+     */
+    private function extractOriginalDescription($description)
+    {
+        $parts = explode("Billable Time Details:", $description);
+        return trim($parts[0]);
     }
 }
