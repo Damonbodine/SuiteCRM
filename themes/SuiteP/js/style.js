@@ -60,11 +60,8 @@ $(document).ready(function () {
     $('html, body').animate({scrollTop: 0}, 500); // Scroll speed to the top
   });
 });
-// Phase 1 YUI Elimination: Replace YAHOO.util.Event.onAvailable with jQuery
-$(document).ready(function() {
-  var sitemapLink = document.getElementById('sitemapLinkSpan');
-  if (sitemapLink) {
-    sitemapLink.onclick = function () {
+YAHOO.util.Event.onAvailable('sitemapLinkSpan', function () {
+  document.getElementById('sitemapLinkSpan').onclick = function () {
     ajaxStatus.showStatus(SUGAR.language.get('app_strings', 'LBL_LOADING_PAGE'));
     var smMarkup = '';
     var callback = {
@@ -82,16 +79,8 @@ $(document).ready(function() {
         }
       }
     }
-    var postData = 'module=Home&action=sitemap&GetSiteMap=now&sugar_body_only=true';
-    // Phase 1 YUI Elimination: Replace YAHOO.util.Connect.asyncRequest with jQuery AJAX
-    $.ajax({
-      type: 'POST',
-      url: 'index.php',
-      data: postData,
-      success: callback.success,
-      error: callback.failure
-    });
-    }
+    postData = 'module=Home&action=sitemap&GetSiteMap=now&sugar_body_only=true';
+    YAHOO.util.Connect.asyncRequest('POST', 'index.php', callback, postData);
   }
 });
 function IKEADEBUG() {
@@ -181,7 +170,7 @@ function updateSubmenuPosition(menuHandle, parentMenu) {
     menuHandle.style.marginLeft = left + 'px';
   }
 }
-$(document).ready(function () {
+YAHOO.util.Event.onDOMReady(function () {
   if (document.getElementById('subModuleList')) {
     var parentMenu = false;
     var moduleListDom = document.getElementById('moduleList');
@@ -226,7 +215,7 @@ SUGAR.append(SUGAR.themes, {
       $(node).sugarActionMenu();
     });
   }, loadModuleList: function () {
-    var nodes = $('#moduleList>div').get(), currMenuBar;
+    var nodes = YAHOO.util.Selector.query('#moduleList>div'), currMenuBar;
     this.allMenuBars = {};
     for (var i = 0; i < nodes.length; i++) {
       currMenuBar = SUGAR.themes.currMenuBar = new YAHOO.widget.MenuBar(nodes[i].id, {
@@ -241,18 +230,11 @@ SUGAR.append(SUGAR.themes, {
         oMenuBar = currMenuBar;
       }
     }
-    // Phase 1 YUI Elimination: Replace YAHOO.util.Event.onAvailable with jQuery check
-    $(document).ready(function() {
-      if (document.getElementById('subModuleList')) {
-        IKEADEBUG();
-      }
-    });
+    YAHOO.util.Event.onAvailable('subModuleList', IKEADEBUG);
   }, setCurrentTab: function () {
   }
 });
-$(document).ready(function() {
-  SUGAR.themes.loadModuleList.call(SUGAR.themes);
-});
+YAHOO.util.Event.onDOMReady(SUGAR.themes.loadModuleList, SUGAR.themes, true);
 
 
 // Custom jQuery for theme

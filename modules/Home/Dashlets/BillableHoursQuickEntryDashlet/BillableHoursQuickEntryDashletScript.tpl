@@ -95,12 +95,17 @@ BillableHours.updateTimerDisplay = function(dashletId) {
 };
 
 BillableHours.logTime = function(dashletId) {
+    console.log('DEBUG: logTime called with dashletId:', dashletId);
+    
     var form = document.getElementById('billable_hours_form_' + dashletId);
     
     if (!form) {
+        console.log('DEBUG: Form not found:', 'billable_hours_form_' + dashletId);
         BillableHours.showStatus(dashletId, '{/literal}{$strings.LBL_ERROR_FORM_NOT_FOUND}{literal}', 'error');
         return;
     }
+    
+    console.log('DEBUG: Form found successfully');
     
     // Validate required fields
     var caseId = document.getElementById('case_select_' + dashletId).value;
@@ -110,6 +115,16 @@ BillableHours.logTime = function(dashletId) {
     var entryDate = document.getElementById('entry_date_' + dashletId).value;
     var entryTime = document.getElementById('entry_time_' + dashletId).value;
     var hourlyRate = document.getElementById('hourly_rate_' + dashletId).value;
+    
+    console.log('DEBUG: Form values:', {
+        caseId: caseId,
+        activityType: activityType,
+        duration: duration,
+        description: description,
+        entryDate: entryDate,
+        entryTime: entryTime,
+        hourlyRate: hourlyRate
+    });
     
     if (!activityType || !duration || !description || !entryDate) {
         BillableHours.showStatus(dashletId, '{/literal}{$strings.LBL_ERROR_REQUIRED_FIELDS}{literal}', 'error');
@@ -133,6 +148,7 @@ BillableHours.logTime = function(dashletId) {
         action: 'CallMethodDashlet',
         method: 'saveTimeEntry',
         dashlet_id: dashletId,
+        dashlet_class: 'BillableHoursQuickEntryDashlet',
         case_id: caseId,
         activity_type: activityType,
         duration: duration,
@@ -143,11 +159,15 @@ BillableHours.logTime = function(dashletId) {
         to_pdf: true
     };
     
+    console.log('DEBUG: Making AJAX request with params:', params);
+    
     // Make AJAX call
     YAHOO.util.Connect.asyncRequest('POST', 'index.php', {
         success: function(response) {
+            console.log('DEBUG: AJAX success, raw response:', response.responseText);
             try {
                 var result = JSON.parse(response.responseText);
+                console.log('DEBUG: Parsed JSON result:', result);
                 
                 if (result.success) {
                     BillableHours.showStatus(dashletId, result.message, 'success');
@@ -157,6 +177,8 @@ BillableHours.logTime = function(dashletId) {
                     BillableHours.showStatus(dashletId, result.message, 'error');
                 }
             } catch (e) {
+                console.log('DEBUG: JSON parse error:', e);
+                console.log('DEBUG: Raw response that failed to parse:', response.responseText);
                 BillableHours.showStatus(dashletId, '{/literal}{$strings.LBL_ERROR_PARSING_RESPONSE}{literal}', 'error');
             }
             
@@ -164,7 +186,10 @@ BillableHours.logTime = function(dashletId) {
             logButton.innerHTML = originalText;
             logButton.disabled = false;
         },
-        failure: function() {
+        failure: function(response) {
+            console.log('DEBUG: AJAX failure:', response);
+            console.log('DEBUG: Response status:', response.status);
+            console.log('DEBUG: Response text:', response.responseText);
             BillableHours.showStatus(dashletId, '{/literal}{$strings.LBL_ERROR_NETWORK}{literal}', 'error');
             
             // Restore button

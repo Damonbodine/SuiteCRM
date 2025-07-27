@@ -22,14 +22,14 @@ try {
     }
     
     // Get the email analysis from database
-    $query = "SELECT * FROM ai_email_analysis 
-              WHERE email_message_id = ? 
-              AND user_id = ? 
-              AND deleted = 0 
-              LIMIT 1";
+    // Use direct query instead of prepared statement due to SuiteCRM issues
+    $emailIdEscaped = "'" . addslashes($emailId) . "'";
+    $directQuery = "SELECT * FROM ai_email_analysis 
+                   WHERE email_message_id = $emailIdEscaped 
+                   AND deleted = 0 
+                   LIMIT 1";
     
-    $userId = $current_user->id ?? '1';
-    $result = $db->pQuery($query, array($emailId, $userId));
+    $result = $db->query($directQuery);
     
     if (!$result || !($email = $db->fetchByAssoc($result))) {
         throw new Exception('Email not found or access denied');

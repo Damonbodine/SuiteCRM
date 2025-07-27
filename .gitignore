@@ -145,3 +145,47 @@ dev-debug.log
 # Task files
 # tasks.json
 # tasks/ 
+
+# Security: Ignore all debug and test files that may contain sensitive data
+debug_*.php
+test_*.php
+check_*.php
+cleanup_*.php
+populate_*.php
+refresh_*.php
+send_email.php
+compose_email.php
+simple_populate_sender.php
+clear_template_cache.php
+minimal_oauth_test.php
+seed_criminal_defense_data.php
+
+# Security: Ignore test HTML files
+test_*.html
+
+# Security: Ignore any OAuth callback or completion files that might contain tokens
+oauth_*.php
+oauth2callback.php
+
+# Security: Ignore any configuration files that might contain API keys or credentials
+*_config.php
+ai_secure_config.php
+secure_config.php
+
+# Security: Ignore environment and credential files
+.env*
+credentials.json
+secrets.json
+api_keys.txt
+
+# Security: Ignore any backup or temporary files that might contain sensitive data
+*.bak
+*.backup
+*.tmp
+*~
+
+# Security: Ignore log files that might contain sensitive information
+*.log
+logs/
+debug.log
+error.log

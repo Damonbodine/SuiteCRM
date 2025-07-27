@@ -121,11 +121,25 @@ class BillableHoursQuickEntryDashlet extends Dashlet
         $response = array('success' => false, 'message' => '');
         
         try {
+            // Debug logging
+            $GLOBALS['log']->info("BillableHours DEBUG: saveTimeEntry called");
+            $GLOBALS['log']->info("BillableHours DEBUG: Request data: " . print_r($_REQUEST, true));
+            
+            // Quick test response to see if we're reaching this method
+            if (isset($_REQUEST['test_only'])) {
+                ob_clean();
+                header('Content-Type: application/json');
+                echo json_encode(array('success' => true, 'message' => 'Method reached successfully'));
+                die();
+            }
+            
             // Validate required fields
             if (empty($_REQUEST['duration']) || empty($_REQUEST['activity_type']) || empty($_REQUEST['description'])) {
                 $response['message'] = $this->dashletStrings['LBL_ERROR_REQUIRED_FIELDS'];
+                ob_clean();
+                header('Content-Type: application/json');
                 echo json_encode($response);
-                return;
+                die();
             }
             
             // Create new Task for time entry
@@ -178,7 +192,11 @@ class BillableHoursQuickEntryDashlet extends Dashlet
             $response['message'] = $this->dashletStrings['LBL_ERROR_GENERAL'];
         }
         
+        // Ensure clean JSON output
+        ob_clean();
+        header('Content-Type: application/json');
         echo json_encode($response);
+        die();
     }
     
     /**

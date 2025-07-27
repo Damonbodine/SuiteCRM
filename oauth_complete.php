@@ -1,7 +1,6 @@
 <?php
 /**
- * Direct OAuth Completion Handler
- * Bypasses SuiteCRM's entry point system to directly handle OAuth completion
+ * Direct OAuth Completion Handler - Silent Processing with Instant Redirect
  */
 
 if (!defined('sugarEntry')) {
@@ -14,17 +13,12 @@ $_SERVER['HTTP_HOST'] = $_SERVER['HTTP_HOST'] ?? 'localhost:8080';
 
 require_once('include/entryPoint.php');
 
-// Force output to prevent hanging
-header('Content-Type: text/html; charset=UTF-8');
-echo "<!DOCTYPE html><html><head><title>OAuth Completion</title></head><body>";
-echo "<h1>🔄 Processing OAuth...</h1>";
-flush();
+// Silent processing - no output until we know the result
+$success = false;
+$errorMessage = '';
 
 try {
     global $current_user, $db, $log;
-    
-    echo "<p>✓ Bootstrap complete</p>";
-    flush();
     
     // Validate parameters
     if (empty($_GET['code'])) {
@@ -34,9 +28,6 @@ try {
     if (empty($_GET['state'])) {
         throw new Exception('Missing state parameter');
     }
-    
-    echo "<p>✓ Parameters validated</p>";
-    flush();
     
     // Load secure config
     require_once('custom/Extension/application/Ext/Include/ai_secure_config.php');
@@ -49,13 +40,7 @@ try {
         throw new Exception('OAuth credentials not configured');
     }
     
-    echo "<p>✓ Credentials loaded</p>";
-    flush();
-    
     // Exchange code for tokens
-    echo "<p>🔄 Exchanging code for tokens...</p>";
-    flush();
-    
     $tokenUrl = 'https://oauth2.googleapis.com/token';
     $redirectUri = 'http://localhost:8080/oauth2callback.php';
     
@@ -94,9 +79,6 @@ try {
         throw new Exception('Invalid token response from Google');
     }
     
-    echo "<p>✓ Tokens received successfully</p>";
-    flush();
-    
     // Determine user ID
     $userId = null;
     if ($current_user && $current_user->id) {
@@ -113,13 +95,7 @@ try {
         throw new Exception('Unable to determine user ID');
     }
     
-    echo "<p>✓ User ID determined: {$userId}</p>";
-    flush();
-    
     // Clean up old connections
-    echo "<p>🧹 Cleaning up old connections...</p>";
-    flush();
-    
     $cleanupQuery = "UPDATE external_oauth_connections 
                     SET deleted = 1, date_modified = NOW() 
                     WHERE assigned_user_id = '{$userId}' 
@@ -128,9 +104,6 @@ try {
     $db->query($cleanupQuery);
     
     // Create new connection
-    echo "<p>💾 Creating OAuth connection...</p>";
-    flush();
-    
     $connectionId = create_guid();
     $expiresAt = date('Y-m-d H:i:s', time() + ($tokens['expires_in'] ?? 3600));
     
@@ -160,42 +133,46 @@ try {
         throw new Exception('Failed to save OAuth connection: ' . $db->lastError());
     }
     
-    echo "<p>✅ OAuth connection saved successfully!</p>";
-    echo "<p><strong>Connection ID:</strong> {$connectionId}</p>";
-    echo "<p><strong>Expires:</strong> {$expiresAt}</p>";
-    flush();
-    
-    // Verify the connection
+    // Verify the connection was created
     $verifyQuery = "SELECT * FROM external_oauth_connections WHERE id = '$connectionIdEsc'";
     $verifyResult = $db->query($verifyQuery);
-    if ($verifyResult && $row = $db->fetchByAssoc($verifyResult)) {
-        echo "<p>✅ Connection verified in database</p>";
-        echo "<p><strong>Name:</strong> " . htmlspecialchars($row['name']) . "</p>";
-        echo "<p><strong>User ID:</strong> " . htmlspecialchars($row['assigned_user_id']) . "</p>";
-        echo "<p><strong>Deleted:</strong> " . ($row['deleted'] ? 'Yes' : 'No') . "</p>";
+    if (!$verifyResult || !$db->fetchByAssoc($verifyResult)) {
+        throw new Exception('Failed to verify OAuth connection in database');
     }
-    
-    echo "<h2>🎉 OAuth Setup Complete!</h2>";
-    echo "<p>Your Gmail account has been successfully connected to SuiteCRM.</p>";
-    echo "<p>You can now go to the Emails module to view your emails with AI analysis.</p>";
-    
-    echo "<p><a href='index.php?module=Emails&action=index' style='background:#28a745;color:white;padding:15px 20px;text-decoration:none;border-radius:4px;font-size:16px'>📧 Go to Emails Module</a></p>";
     
     // Log success
     if ($log) {
         $log->info("OAuth Complete: Successfully created connection {$connectionId} for user {$userId}");
     }
     
+    // Mark as successful
+    $success = true;
+    
 } catch (Exception $e) {
-    echo "<h2>❌ OAuth Error</h2>";
-    echo "<p><strong>Error:</strong> " . htmlspecialchars($e->getMessage()) . "</p>";
-    echo "<p>Please try the OAuth process again.</p>";
-    echo "<p><a href='index.php?module=Emails&action=index' style='background:#dc3545;color:white;padding:10px 15px;text-decoration:none;border-radius:4px'>🔄 Try Again</a></p>";
+    $errorMessage = $e->getMessage();
     
     if (isset($log)) {
         $log->error("OAuth Complete: Error - " . $e->getMessage());
     }
 }
 
-echo "</body></html>";
+// Now decide what to output based on success
+if ($success) {
+    // Instant redirect on success
+    header('Location: index.php?module=Emails&action=index');
+    exit();
+} else {
+    // Show error page only if failed
+    header('Content-Type: text/html; charset=UTF-8');
+    echo "<!DOCTYPE html><html><head><title>OAuth Error</title>";
+    echo "<style>body{font-family:Arial,sans-serif;margin:40px;} .error{background:#fee;border:1px solid #fcc;padding:20px;border-radius:8px;color:#c33;}</style>";
+    echo "</head><body>";
+    echo "<div class='error'>";
+    echo "<h2>❌ OAuth Error</h2>";
+    echo "<p><strong>Error:</strong> " . htmlspecialchars($errorMessage) . "</p>";
+    echo "<p>Please try the OAuth process again.</p>";
+    echo "<p><a href='index.php?module=Emails&action=index' style='background:#dc3545;color:white;padding:10px 15px;text-decoration:none;border-radius:4px'>🔄 Try Again</a></p>";
+    echo "</div>";
+    echo "</body></html>";
+}
 ?>
