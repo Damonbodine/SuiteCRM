@@ -166,6 +166,7 @@ test_*.html
 # Security: Ignore any OAuth callback or completion files that might contain tokens
 oauth_*.php
 oauth2callback.php
+verify_oauth_fix.php
 
 # Security: Ignore any configuration files that might contain API keys or credentials
 *_config.php
